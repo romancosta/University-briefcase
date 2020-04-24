@@ -1,0 +1,73 @@
+--Pipeline Creation Query
+
+SELECT
+--***Here are the columns we want to include; they come from various tables (see FROM section below)
+a.frm_GEO__c AS 'Level 2 (GEO)',
+a.account_frm_AREA__c AS 'Account Level 3 (Area)',
+a.account_frm_territory__c AS 'Account Level 5 (Territory)',
+a.account_frm_sub_territory__c AS 'Account Level 6 (Sub Territory)',
+a.opp_id__c AS Opportuntiy ID',
+a.Name AS 'Opportunity Name',
+b.totalprice AS 'Total Price',
+a.CreatedDate AS 'Created Date',
+a.LMT_Converted_Lead_ID__c AS Converted Lead ID',
+c.Name AS 'Account Name',
+c.Org_Id__c AS 'Vantive Org ID',
+d.Name AS 'Opportunity Owner',
+a.Closedate AS 'Close Date',
+a.StageName AS 'Stage',
+a.Probability AS 'Probability (%)',
+a.Use_Case__c AS 'Use Case',
+a.Business_Value__c AS 'Business Value',
+a.Approved_Budget__c AS 'Approved Budget',
+a.Discovery_Agreement__c AS 'Discovery Agreement',
+b.Product_Family__c AS 'Product Family',
+e.Product_Type__c AS 'Product Type',
+g.Name AS 'Program Code',
+h.Name AS 'Created By',
+
+--***some names in salesforce have annoying characters attached--***let’sremove thosecharacters so we don’t have multiple records for the same person
+CASE WHEN h.Name LIKE '%0%' THEN REPLACE(h.Name,'0','') 
+     WHEN h.Name LIKE '%1%' THEN REPLACE(h.Name,'1','')
+     WHEN h.NameLIKE '%2%' THEN REPLACE(h.Name,'2','')
+     WHEN h.Name LIKE '%3%' THEN REPLACE(h.Name,'3','')
+     WHEN h.Name LIKE '%4%' THEN REPLACE(h.Name,'4','')
+     WHEN h.Name LIKE '%5%' THEN REPLACE(h.Name,'5','')
+     WHEN h.Name LIKE '%6%' THENREPLACE(h.Name,'6','')
+     WHEN h.Name LIKE '%7%' THEN REPLACE(h.Name,'7','')
+     WHEN h.Name LIKE '%8%' THEN REPLACE(h.Name,'8','')
+     WHEN h.Name LIKE '%9%' THEN REPLACE(h.Name,'9','')
+     WHEN h.Name LIKE '% Jr%' THEN REPLACE(h.Name,' Jr','')
+      ELSE h.Name
+        END AS 'Corrected Created By',
+CASE WHEN g.Name LIKE '%GrandPrixQ3%' 
+  THEN 'Yes'
+    ELSE 'No'
+      END AS 'Made from Sales Play?',
+CASE WHEN g.Name LIKE '%GrandPrixQ3%' 
+  THEN CONVERT(money, b.TotalPrice * 2) 
+    ELSE b.TotalPrice 
+      END AS 'Corrected Total Price'
+      
+--***END OF THE COLUMN LIST
+--
+----***Now here are the tables where our variables can be found
+--***the base table is Opportunity, since this query is meant for tracking pipeline/opportunities
+
+FROMdbo.[Opportunity] AS a
+  LEFT JOIN dbo.[OpportunityLineItem]  AS b  ON a.Id=   b.OpportunityId
+  LEFT JOIN dbo.[Account]              AS c   ON     a.AccountID        =   c.Id
+  LEFT JOIN dbo.[User]                 AS d   ON     a.OwnerID          =   d.ID
+  LEFT JOIN dbo.[Product2]             AS e   ON     b.Product2Id       =   e.Id
+  LEFT JOIN dbo.[Lead]                 AS f   ON     a.Id               =   f.ConvertedOpportunityId 
+  LEFT JOIN dbo.[Campaign]             AS g   ON     f.Program_Code__c  =   g.Id
+  LEFT JOINdbo.[User]                 AS h   ON     a.CreatedById      =   h.Id
+  
+  
+  --***below is how we will filter the query
+  WHEREa.frm_GEO__c = 'Americas' AND--*Only look in the Americas
+       a.StageName NOT IN ('Inactive/Duplicate') AND--*don’t want to include old/outdatedopportunities
+       a.CreatedDate > '8/5/2019' AND a.CreatedDate < '8/17/2019' --*only during this time period
+       --*the filter that selects the names of certain sales reps has been removed for privacy purposes
+
+--****END
